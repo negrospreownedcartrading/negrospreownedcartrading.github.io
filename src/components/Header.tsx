@@ -21,6 +21,7 @@ export default function Header() {
   const [floating, setFloating] = useState(false);
   const slotRef = useRef<HTMLAnchorElement>(null);
   const floatRef = useRef<HTMLAnchorElement>(null);
+  const glowRef = useRef<HTMLDivElement>(null);
 
   // Turned on after the page loads (all screen sizes), so the first render matches the server
   useEffect(() => setFloating(true), []);
@@ -60,7 +61,9 @@ export default function Header() {
       const w = startW + (end.width - startW) * e;
       el.style.width = `${startW}px`;
       el.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${w / startW})`;
-      el.style.filter = `drop-shadow(0 0 ${28 * (1 - e)}px rgba(242,193,3,${0.35 * (1 - e)}))`;
+      // Glow is a separate layer behind the logo (a CSS filter on the logo itself can stop
+      // mobile Safari from repainting the car animation inside it)
+      if (glowRef.current) glowRef.current.style.opacity = String(1 - e);
     };
     const schedule = () => {
       if (!raf) raf = requestAnimationFrame(frame);
@@ -69,7 +72,8 @@ export default function Header() {
     // After placing it, ease every move so the logo glides behind the scroll instead of
     // snapping (set after the first frame so it doesn't fly in from the corner on load)
     const easeIn = requestAnimationFrame(() => {
-      el.style.transition = "transform 0.9s cubic-bezier(0.22, 0.8, 0.25, 1), filter 0.9s ease";
+      el.style.transition = "transform 0.9s cubic-bezier(0.22, 0.8, 0.25, 1)";
+      if (glowRef.current) glowRef.current.style.transition = "opacity 0.9s ease";
     });
     window.addEventListener("scroll", schedule, { passive: true });
     window.addEventListener("resize", schedule);
@@ -182,7 +186,12 @@ export default function Header() {
           onClick={() => setOpen(false)}
           className="fixed top-0 left-0 z-[51] origin-top-left will-change-transform"
         >
-          <div className="animate-logo-in">
+          <div
+            ref={glowRef}
+            aria-hidden="true"
+            className="pointer-events-none absolute -inset-[12%] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(242,193,3,0.35),transparent_65%)]"
+          />
+          <div className="relative animate-logo-in">
             <AnimatedLogo priority />
           </div>
         </a>
