@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { site } from "@/data/site";
+import { scrollToHash } from "@/lib/scrollToHash";
 import AnimatedLogo from "./AnimatedLogo";
 import { MessengerIcon, PhoneIcon } from "./icons";
 
@@ -27,6 +28,22 @@ export default function Header() {
 
   // Turned on after the page loads (all screen sizes), so the first render matches the server
   useEffect(() => setFloating(true), []);
+
+  // Every other in-page link (banner buttons, header nav, logo, Contact…) goes through
+  // scrollToHash too, so iPhone Safari doesn't snap back to the top
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
+      const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href^="#"]');
+      const href = a?.getAttribute("href");
+      if (!href || href === "#" || !document.querySelector(href)) return;
+      e.preventDefault();
+      setOpen(false);
+      scrollToHash(href);
+    };
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
+  }, []);
 
   useEffect(() => {
     const el = floatRef.current;
@@ -144,8 +161,7 @@ export default function Header() {
     e.preventDefault();
     setOpen(false);
     setTimeout(() => {
-      document.querySelector(href)?.scrollIntoView({ behavior: "smooth" });
-      history.replaceState(null, "", href);
+      scrollToHash(href);
     }, 60);
   };
 
