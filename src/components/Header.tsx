@@ -22,6 +22,8 @@ export default function Header() {
   const slotRef = useRef<HTMLAnchorElement>(null);
   const floatRef = useRef<HTMLAnchorElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
+  // Current on-screen logo position, kept across menu open/close so it glides instead of jumping
+  const logoPos = useRef<{ startW: number; x: number; y: number; s: number; glow: number } | null>(null);
 
   // Turned on after the page loads (all screen sizes), so the first render matches the server
   useEffect(() => setFloating(true), []);
@@ -30,16 +32,19 @@ export default function Header() {
     const el = floatRef.current;
     const slot = slotRef.current;
     if (!floating || !el || !slot) return;
-    let raf = 0;
-    const frame = () => {
-      raf = 0;
+
+    // Steady screen height: iPhone Safari changes innerHeight while its address bar
+    // shrinks/grows during scrolling, which made the logo jump. Only real resizes
+    // (width change or rotation) update it.
+    let vw = window.innerWidth;
+    let vh = window.innerHeight;
+
+    // Where the logo should be right now (big above the "Silay City" line → header slot)
+    const target = () => {
       const end = slot.getBoundingClientRect();
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
       const startW = Math.min(vw * 0.8, 520);
       const startH = (startW * 145) / 450;
-      // Start position: left-aligned, sitting just above the "Silay City · Negros Occidental" line.
-      // offsetTop/Left (not getBoundingClientRect) so the text's entrance animation doesn't shift it.
+      // offsetTop/Left (not getBoundingClientRect) so the text's entrance animation doesn't shift it
       let ax = (vw - startW) / 2;
       let ay = vh * 0.3;
       const anchor = document.querySelector<HTMLElement>("[data-logo-anchor]");
@@ -51,37 +56,74 @@ export default function Header() {
           ay += n.offsetTop;
         }
       }
-      const startX = ax;
       const startY = ay - startH - 12;
       // 0 at the top of the page → 1 once scrolled ~90% of a screen (or menu open)
       const p = open ? 1 : Math.min(1, Math.max(0, window.scrollY / (vh * 0.9)));
       const e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
-      const x = startX + (end.left - startX) * e;
-      const y = startY + (end.top - startY) * e;
-      const w = startW + (end.width - startW) * e;
-      el.style.width = `${startW}px`;
-      el.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${w / startW})`;
-      // Glow is a separate layer behind the logo (a CSS filter on the logo itself can stop
-      // mobile Safari from repainting the car animation inside it)
-      if (glowRef.current) glowRef.current.style.opacity = String(1 - e);
+      return {
+        startW,
+        x: ax + (end.left - ax) * e,
+        y: startY + (end.top - startY) * e,
+        s: (startW + (end.width - startW) * e) / startW,
+        glow: 1 - e,
+      };
     };
-    const schedule = () => {
-      if (!raf) raf = requestAnimationFrame(frame);
+
+    // Smoothly follow the target frame by frame (instead of restarting a CSS transition on
+    // every scroll event, which stutters/flickers in Safari). Stops when it has arrived.
+    let cur = logoPos.current ?? target();
+    let raf = 0;
+    let last = 0;
+    const apply = () => {
+      logoPos.current = cur;
+      el.style.width = `${cur.startW}px`;
+      el.style.transform = `translate3d(${cur.x}px, ${cur.y}px, 0) scale(${cur.s})`;
+      if (glowRef.current) glowRef.current.style.opacity = String(cur.glow);
     };
-    frame();
-    // After placing it, ease every move so the logo glides behind the scroll instead of
-    // snapping (set after the first frame so it doesn't fly in from the corner on load)
-    const easeIn = requestAnimationFrame(() => {
-      el.style.transition = "transform 0.9s cubic-bezier(0.22, 0.8, 0.25, 1)";
-      if (glowRef.current) glowRef.current.style.transition = "opacity 0.9s ease";
-    });
-    window.addEventListener("scroll", schedule, { passive: true });
-    window.addEventListener("resize", schedule);
+    const tick = (now: number) => {
+      const t = target();
+      const dt = last ? Math.min(64, now - last) : 16;
+      last = now;
+      const k = 1 - Math.exp(-dt / 160); // ~0.5s to settle
+      cur = {
+        startW: t.startW,
+        x: cur.x + (t.x - cur.x) * k,
+        y: cur.y + (t.y - cur.y) * k,
+        s: cur.s + (t.s - cur.s) * k,
+        glow: cur.glow + (t.glow - cur.glow) * k,
+      };
+      apply();
+      const done = Math.abs(t.x - cur.x) < 0.2 && Math.abs(t.y - cur.y) < 0.2 && Math.abs(t.s - cur.s) < 0.0005;
+      if (done) {
+        cur = t;
+        apply();
+        raf = 0;
+        last = 0;
+      } else {
+        raf = requestAnimationFrame(tick);
+      }
+    };
+    const wake = () => {
+      if (!raf) raf = requestAnimationFrame(tick);
+    };
+    const onResize = () => {
+      const widthChanged = window.innerWidth !== vw;
+      const rotated = Math.abs(window.innerHeight - vh) > 150;
+      if (!widthChanged && !rotated) return; // just the address bar — ignore
+      vw = window.innerWidth;
+      vh = window.innerHeight;
+      cur = target(); // jump straight to the new layout
+      apply();
+    };
+
+    apply();
+    wake();
+    window.addEventListener("scroll", wake, { passive: true });
+    window.addEventListener("resize", onResize);
     return () => {
       cancelAnimationFrame(raf);
-      cancelAnimationFrame(easeIn);
-      window.removeEventListener("scroll", schedule);
-      window.removeEventListener("resize", schedule);
+      window.removeEventListener("scroll", wake);
+      window.removeEventListener("resize", onResize);
     };
   }, [floating, open]);
 
@@ -184,7 +226,7 @@ export default function Header() {
           href="#top"
           aria-label="Negros Preowned Car Trading home"
           onClick={() => setOpen(false)}
-          className="fixed top-0 left-0 z-[51] origin-top-left will-change-transform"
+          className="fixed top-0 left-0 z-[51] origin-top-left will-change-transform [backface-visibility:hidden]"
         >
           <div
             ref={glowRef}
