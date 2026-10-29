@@ -24,7 +24,8 @@ export default function Garage() {
   const [photo, setPhoto] = useState(0);
 
   const sectionRef = useRef<HTMLElement>(null);
-  const stripRef = useRef<HTMLDivElement>(null);
+  const stripRef = useRef<HTMLDivElement>(null); // under the stage (desktop)
+  const mobileStripRef = useRef<HTMLDivElement>(null); // top of the details screen (phones/tablets)
   const inView = useRef(false);
   const touchX = useRef<number | null>(null);
 
@@ -64,16 +65,42 @@ export default function Garage() {
     };
   }, [step, gallery]);
 
-  // Keep the active thumbnail centered in the strip (without scrolling the page)
+  // Keep the active thumbnail centered in the strips (without scrolling the page)
   useEffect(() => {
-    const strip = stripRef.current;
-    const thumb = strip?.children[index] as HTMLElement | undefined;
-    if (!strip || !thumb) return;
-    strip.scrollTo({
-      left: thumb.offsetLeft - strip.clientWidth / 2 + thumb.clientWidth / 2,
-      behavior: "smooth",
-    });
+    for (const strip of [stripRef.current, mobileStripRef.current]) {
+      const thumb = strip?.children[index] as HTMLElement | undefined;
+      if (!strip || !thumb) continue;
+      strip.scrollTo({
+        left: thumb.offsetLeft - strip.clientWidth / 2 + thumb.clientWidth / 2,
+        behavior: "smooth",
+      });
+    }
   }, [index, type]);
+
+  const renderStrip = (ref: React.RefObject<HTMLDivElement | null>, className: string) => (
+    <div ref={ref} className={`no-scrollbar relative snap-x gap-3 overflow-x-auto px-1 py-2 ${className}`}>
+      {list.map((u, i) => (
+        <button
+          key={u.id}
+          onClick={() => select(i)}
+          className={`group w-24 shrink-0 snap-center text-left transition duration-300 md:w-28 ${
+            i === index ? "scale-105" : "opacity-50 grayscale hover:opacity-90 hover:grayscale-0"
+          }`}
+        >
+          <div
+            className={`skeleton relative aspect-[4/3] overflow-hidden rounded-lg ring-2 transition ${
+              i === index ? "shadow-lg shadow-brand/30 ring-brand" : "ring-transparent"
+            }`}
+          >
+            <Image src={u.photos[0]} alt="" fill sizes="112px" loading="lazy" className="object-cover" />
+          </div>
+          <p className="mt-1.5 truncate font-display text-[11px] font-bold tracking-wider uppercase md:mt-2 md:text-xs">
+            {u.year} {u.name}
+          </p>
+        </button>
+      ))}
+    </div>
+  );
 
   const bars = [
     { label: "Model Year", value: clamp((car.year - 2008) / (2025 - 2008)), text: String(car.year) },
@@ -81,14 +108,17 @@ export default function Garage() {
     { label: "Engine", value: clamp(car.engineLiters / 3), text: car.engine },
   ];
 
-  const inquire = `${site.messenger}?text=${encodeURIComponent(`Hi! Is the ${car.year} ${car.name} still available?`)}`;
+  const inquire = site.messenger;
 
   return (
     <section
       ref={sectionRef}
       id="units"
       aria-label="Available units"
-      className="relative snap-start overflow-hidden border-t border-line py-20 sm:py-28"
+      // Below lg the garage is two lock screens (heading+photo, then details) instead of one
+      // tall snap area, because browsers scroll freely inside snap areas taller than the screen.
+      // overflow-clip (not hidden) so the inner snap points still belong to the page scroller.
+      className="relative overflow-clip border-t border-line py-20 sm:py-28 lg:snap-start lg:pt-24 lg:pb-10"
     >
       {/* Garage backdrop: floor grid + spotlight */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_30%_55%,rgba(242,193,3,0.14),transparent_55%)]" />
@@ -96,7 +126,7 @@ export default function Garage() {
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
         {/* Heading + filters */}
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-5 max-lg:snap-start max-lg:scroll-mt-20 sm:max-lg:scroll-mt-28 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="font-display text-sm font-semibold tracking-[0.35em] text-brand uppercase">
               The Garage
@@ -126,11 +156,12 @@ export default function Garage() {
           </div>
         </div>
 
-        <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:items-center">
-          {/* Stage */}
-          <div>
+        <div className="mt-10 grid grid-cols-1 gap-10 lg:mt-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:items-start">
+          {/* Stage — on phones/tablets it fills at least the first screen, so the details
+              screen (with its car pictures) always starts below the fold */}
+          <div className="max-lg:min-h-[calc(100svh-230px)]">
             <div
-              className="relative mx-auto aspect-[4/5] w-full max-w-md select-none"
+              className="relative mx-auto aspect-[4/5] w-full max-w-md select-none lg:h-[clamp(300px,calc(100svh-440px),560px)] lg:w-auto lg:max-w-none"
               onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
               onTouchEnd={(e) => {
                 if (touchX.current === null) return;
@@ -197,7 +228,7 @@ export default function Garage() {
             </div>
 
             {/* Photo dots for current car */}
-            <div className="mt-8 flex justify-center gap-2">
+            <div className="mt-8 flex justify-center gap-2 lg:mt-5">
               {car.photos.map((p, n) => (
                 <button
                   key={p}
@@ -214,36 +245,14 @@ export default function Garage() {
               ))}
             </div>
 
-            {/* Car strip */}
-            <div
-              ref={stripRef}
-              className="no-scrollbar relative mt-6 flex snap-x gap-3 overflow-x-auto px-1 py-2"
-            >
-              {list.map((u, i) => (
-                <button
-                  key={u.id}
-                  onClick={() => select(i)}
-                  className={`group w-28 shrink-0 snap-center text-left transition duration-300 ${
-                    i === index ? "scale-105" : "opacity-50 grayscale hover:opacity-90 hover:grayscale-0"
-                  }`}
-                >
-                  <div
-                    className={`skeleton relative aspect-[4/3] overflow-hidden rounded-lg ring-2 transition ${
-                      i === index ? "shadow-lg shadow-brand/30 ring-brand" : "ring-transparent"
-                    }`}
-                  >
-                    <Image src={u.photos[0]} alt="" fill sizes="112px" loading="lazy" className="object-cover" />
-                  </div>
-                  <p className="mt-2 truncate font-display text-xs font-bold tracking-wider uppercase">
-                    {u.year} {u.name}
-                  </p>
-                </button>
-              ))}
-            </div>
+            {/* Car strip under the stage on desktop; phones/tablets get it on the details screen */}
+            {renderStrip(stripRef, "mt-3 hidden lg:flex")}
           </div>
 
-          {/* Spec panel */}
-          <div key={`info-${car.id}`} className="animate-fade">
+          {/* Spec panel — on phones/tablets this is its own scroll-lock screen, sized to fit */}
+          <div key={`info-${car.id}`} className="animate-fade scroll-mt-16 max-lg:snap-start max-lg:scroll-mt-4 max-lg:pt-14">
+            {renderStrip(mobileStripRef, "-mx-1 mb-3 flex lg:hidden")}
+
             <div className="flex items-center gap-3">
               <span className="rounded-sm bg-brand px-2 py-0.5 font-display text-xs font-bold tracking-[0.2em] text-black uppercase">
                 {car.type}
@@ -253,26 +262,26 @@ export default function Garage() {
               </span>
             </div>
 
-            <h3 className="mt-3 font-display text-4xl leading-none font-bold uppercase sm:text-5xl">
+            <h3 className="mt-2 font-display text-3xl leading-none font-bold uppercase roomy:text-5xl roomy:mt-3">
               <span className="text-brand">{car.year}</span> {car.name}
             </h3>
 
-            <div className="mt-5 flex flex-wrap items-end gap-x-6 gap-y-2">
-              <p className="font-display text-4xl font-bold text-brand sm:text-5xl">{peso(car.price)}</p>
-              <p className="pb-1 text-sm text-white/70">
+            <div className="mt-3 flex flex-wrap items-end gap-x-4 gap-y-1 roomy:mt-5 roomy:gap-x-6 roomy:gap-y-2">
+              <p className="font-display text-3xl font-bold text-brand roomy:text-5xl">{peso(car.price)}</p>
+              <p className="pb-1 text-xs text-white/70 roomy:text-sm">
                 Cash price · <span className="text-white">Negotiable for cash buyer</span>
               </p>
             </div>
 
             {/* Stat bars */}
-            <div className="mt-8 space-y-4">
+            <div className="mt-4 space-y-2.5 roomy:mt-8 roomy:space-y-4">
               {bars.map((b, n) => (
                 <div key={b.label}>
-                  <div className="mb-1.5 flex justify-between font-display text-sm font-semibold tracking-[0.15em] uppercase">
+                  <div className="mb-1 flex justify-between font-display text-xs font-semibold tracking-[0.15em] uppercase roomy:mb-1.5 roomy:text-sm">
                     <span className="text-white/70">{b.label}</span>
                     <span>{b.text}</span>
                   </div>
-                  <div className="h-2.5 overflow-hidden rounded-sm bg-white/10 [clip-path:polygon(0_0,100%_0,98%_100%,0_100%)]">
+                  <div className="h-2 overflow-hidden roomy:h-2.5 rounded-sm bg-white/10 [clip-path:polygon(0_0,100%_0,98%_100%,0_100%)]">
                     <div
                       className="h-full origin-left animate-bar bg-gradient-to-r from-brand/70 to-brand"
                       style={{ width: `${b.value * 100}%`, animationDelay: `${150 + n * 120}ms` }}
@@ -283,20 +292,20 @@ export default function Garage() {
             </div>
 
             {/* Quick specs */}
-            <dl className="mt-8 grid grid-cols-3 gap-px overflow-hidden rounded-xl bg-line text-center">
+            <dl className="mt-4 grid grid-cols-3 gap-px overflow-hidden rounded-xl bg-line text-center roomy:mt-8">
               {[
                 ["Trans", car.transmission],
                 ["Fuel", car.fuel],
                 ["DP", peso(car.downpayment)],
               ].map(([k, v]) => (
-                <div key={k} className="bg-panel px-2 py-3">
-                  <dt className="font-display text-xs tracking-[0.2em] text-white/50 uppercase">{k}</dt>
-                  <dd className="mt-1 font-display text-base font-bold sm:text-lg">{v}</dd>
+                <div key={k} className="bg-panel px-2 py-2 roomy:py-3">
+                  <dt className="font-display text-[11px] tracking-[0.2em] text-white/50 uppercase roomy:text-xs">{k}</dt>
+                  <dd className="mt-0.5 font-display text-sm font-bold roomy:text-lg roomy:mt-1">{v}</dd>
                 </div>
               ))}
             </dl>
 
-            <p className="mt-4 text-sm text-white/70">
+            <p className="mt-3 text-xs text-white/70 roomy:mt-4 roomy:text-sm">
               Financing:{" "}
               {car.terms.map((t, n) => (
                 <span key={t.years}>
@@ -306,32 +315,33 @@ export default function Garage() {
               ))}
             </p>
 
-            <ul className="mt-6 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+            <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs roomy:mt-6 roomy:gap-y-2 roomy:text-sm">
               {car.highlights.map((h) => (
-                <li key={h} className="flex items-center gap-2 text-white/85">
-                  <CheckIcon className="size-4 shrink-0 text-brand" />
+                <li key={h} className="flex items-center gap-1.5 text-white/85 roomy:gap-2">
+                  <CheckIcon className="size-3.5 shrink-0 text-brand roomy:size-4" />
                   {h}
                 </li>
               ))}
             </ul>
 
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            {/* Side by side on phones too, to save height */}
+            <div className="mt-4 flex gap-2 roomy:mt-8 roomy:gap-3">
               <a
                 href={inquire}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-brand px-6 font-display text-base font-bold tracking-[0.15em] text-black uppercase shadow-lg shadow-brand/30 transition hover:-translate-y-0.5 hover:bg-brand-soft"
+                className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-brand px-3 font-display text-sm font-bold tracking-[0.12em] text-black uppercase shadow-lg shadow-brand/30 transition hover:-translate-y-0.5 hover:bg-brand-soft roomy:px-6 roomy:text-base roomy:tracking-[0.15em]"
               >
-                <MessengerIcon /> Inquire Now
+                <MessengerIcon /> Inquire<span className="hidden sm:inline"> Now</span>
               </a>
               <a
                 href={`tel:${site.phone}`}
-                className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full border border-white/30 px-6 font-display text-base font-bold tracking-[0.15em] uppercase transition hover:border-white hover:bg-white/10"
+                className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full border border-white/30 px-3 font-display text-sm font-bold tracking-[0.12em] uppercase transition hover:border-white hover:bg-white/10 roomy:px-6 roomy:text-base roomy:tracking-[0.15em]"
               >
                 <PhoneIcon /> Call {site.contactName}
               </a>
             </div>
-            <p className="mt-4 text-xs text-white/50">
+            <p className="mt-3 text-[11px] text-white/50 roomy:mt-4 roomy:text-xs">
               Free transfer of ownership · Mechanic inspected · LTO verified · Comprehensive insurance not included
             </p>
           </div>

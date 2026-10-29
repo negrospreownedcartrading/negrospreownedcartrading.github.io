@@ -5,7 +5,7 @@ export default function Hero() {
     <section
       id="top"
       aria-label="Welcome"
-      className="relative flex min-h-[100svh] snap-start items-end overflow-hidden pt-28 pb-24 sm:items-center sm:pb-16"
+      className="relative flex min-h-[100svh] snap-start items-end overflow-hidden pt-28 pb-24 sm:pb-20"
     >
       {/* Background: drop a photo at public/brand/hero.jpg to replace the gradient */}
       <div
@@ -24,19 +24,15 @@ export default function Hero() {
       <div className="sweep-glow pointer-events-none absolute inset-0 animate-sweep" />
 
       <div className="relative mx-auto w-full max-w-7xl px-4 sm:px-6">
-        <p className="animate-rise font-display text-sm font-semibold tracking-[0.35em] text-brand-soft uppercase [animation-delay:150ms]">
+        <p data-logo-anchor className="animate-rise font-display text-sm font-semibold tracking-[0.35em] text-brand-soft uppercase [animation-delay:150ms]">
           Silay City · Negros Occidental
         </p>
-        <h1 className="mt-3 animate-rise font-display text-5xl leading-[0.95] font-bold uppercase sm:text-7xl lg:text-8xl [animation-delay:300ms]">
+        <h1 className="mt-3 animate-rise font-display text-[clamp(2.1rem,10.4vw,3rem)] leading-[0.95] font-bold uppercase sm:text-7xl lg:text-8xl [animation-delay:300ms]">
           Drive Home
           <br />
-          <span className="text-brand">Your Next Ride</span>
+          <span className="text-brand">Your Dream Ride</span>
         </h1>
-        <p className="mt-5 max-w-md animate-rise text-base text-white/75 sm:text-lg [animation-delay:450ms]">
-          Quality cars. Honest deals. Smooth transactions. Mechanic inspected, LTO verified, free transfer of
-          ownership.
-        </p>
-        <div className="mt-8 flex animate-rise flex-col gap-3 sm:flex-row [animation-delay:600ms]">
+        <div className="mt-8 flex animate-rise flex-col gap-3 sm:flex-row [animation-delay:450ms]">
           <a
             href="#units"
             className="rounded-full bg-brand px-8 py-4 text-center font-display text-black text-base font-bold tracking-[0.15em] uppercase shadow-lg shadow-brand/30 transition hover:-translate-y-0.5 hover:bg-brand-soft"

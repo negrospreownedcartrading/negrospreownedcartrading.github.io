@@ -6,10 +6,16 @@ export const site = {
   contactName: "Mark",
   phone: "+639983062389",
   phoneDisplay: "0998 306 2389",
-  messenger: "https://m.me/markpollenparenas",
+  // Page's Messenger chat — m.me opens the Messenger app on phones
+  messenger: "https://m.me/101285389306630",
   facebook: "https://www.facebook.com/negrospreownedcartrading",
   financingPartner: "Global Dominion Financing Inc.",
 };
+
+// Opens the phone's messaging app with Mark's number and a ready-made message.
+// "?&body=" works on both iPhone and Android.
+export const smsLink = (body = "Hi Mark! I saw your website and I'm interested in one of your units.") =>
+  `sms:${site.phone}?&body=${encodeURIComponent(body)}`;
 
 export const stats = [
   { value: 100, suffix: "%", label: "Recommend us" },
@@ -32,7 +38,7 @@ export const perks = [
     text: "Low downpayment options with Global Dominion — Top Performer Dealer, Q1.",
   },
   {
-    title: "Free Car Tint",
-    text: "Less heat, less glare, more privacy. Tinted before hand-over, on us.",
+    title: "Hand-Over Ready",
+    text: "Every unit is cleaned, detailed and serviced before we hand you the keys.",
   },
 ];

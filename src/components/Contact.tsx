@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { site } from "@/data/site";
+import { site, smsLink } from "@/data/site";
 import { MessengerIcon, PhoneIcon, PinIcon, SmsIcon } from "./icons";
 import Reveal from "./Reveal";
 
@@ -33,7 +33,7 @@ export default function Contact() {
               <PhoneIcon /> Call
             </a>
             <a
-              href={`sms:${site.phone}`}
+              href={smsLink()}
               className="flex min-h-14 items-center justify-center gap-2 rounded-full border border-white/30 px-8 font-display text-lg font-bold tracking-[0.12em] uppercase transition hover:border-white hover:bg-white/10"
             >
               <SmsIcon /> Text
@@ -66,6 +66,18 @@ export default function Contact() {
             className="font-display text-sm font-bold tracking-[0.2em] text-brand uppercase hover:underline"
           >
             Facebook Page →
+          </a>
+        </div>
+
+        {/* Developer credit */}
+        <div className="mx-auto mt-8 max-w-7xl border-t border-line px-4 pt-6 text-center sm:px-6">
+          <a
+            href="https://jstudio11sys.github.io/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs tracking-[0.15em] text-white/40 uppercase transition hover:text-brand"
+          >
+            Developed by JStudio11sys
           </a>
         </div>
       </footer>
