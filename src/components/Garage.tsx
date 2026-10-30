@@ -93,6 +93,11 @@ export default function Garage() {
             }`}
           >
             <Image src={u.photos[0]} alt="" fill sizes="112px" loading="lazy" className="object-cover" />
+            {u.reserved && (
+              <span className="absolute inset-x-0 bottom-0 bg-red-600 py-0.5 text-center font-display text-[9px] font-bold tracking-[0.2em] text-white uppercase">
+                Reserved
+              </span>
+            )}
           </div>
           <p className="mt-1.5 truncate font-display text-[11px] font-bold tracking-wider uppercase md:mt-2 md:text-xs">
             {u.year} {u.name}
@@ -195,6 +200,11 @@ export default function Garage() {
                     className="object-cover transition duration-700 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                  {car.reserved && (
+                    <span className="absolute top-5 right-5 -rotate-12 rounded-md border-[3px] border-red-600 bg-black/40 px-3 py-1 font-display text-xl font-bold tracking-[0.25em] text-red-500 uppercase shadow-lg backdrop-blur-sm sm:text-2xl">
+                      Reserved
+                    </span>
+                  )}
                   <span className="absolute bottom-4 left-4 rounded-full bg-black/60 px-3 py-1 font-display text-xs font-bold tracking-[0.2em] uppercase backdrop-blur">
                     Tap for {car.photos.length} photos
                   </span>
@@ -257,6 +267,11 @@ export default function Garage() {
               <span className="rounded-sm bg-brand px-2 py-0.5 font-display text-xs font-bold tracking-[0.2em] text-black uppercase">
                 {car.type}
               </span>
+              {car.reserved && (
+                <span className="rounded-sm bg-red-600 px-2 py-0.5 font-display text-xs font-bold tracking-[0.2em] text-white uppercase">
+                  Reserved
+                </span>
+              )}
               <span className="font-display text-sm tracking-[0.2em] text-white/60 uppercase">
                 {String(index + 1).padStart(2, "0")} / {String(list.length).padStart(2, "0")}
               </span>
